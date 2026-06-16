@@ -1,9 +1,55 @@
 """实时获取股票行情并计算技术指标"""
 import time
+from dataclasses import dataclass
 from datetime import datetime
 from futu import *
 import talib
 import numpy as np
+
+
+@dataclass
+class MACDResult:
+    """MACD指标结果"""
+    dif: float | None
+    dea: float | None
+    macd: float | None
+
+
+@dataclass
+class KDJResult:
+    """KDJ指标结果"""
+    k: float | None
+    d: float | None
+    j: float | None
+
+
+@dataclass
+class RSIResult:
+    """RSI指标结果"""
+    rsi1: float | None
+    rsi2: float | None
+    rsi3: float | None
+
+
+@dataclass
+class RealtimeInfo:
+    """实时行情信息"""
+    stock_code: str
+    timestamp: str
+    current_price: float | None
+    open_price: float | None
+    high_price: float | None
+    low_price: float | None
+    prev_close_price: float | None
+    volume: float | None
+    turnover: float | None
+    change_val: float | None
+    change_rate: float | None
+    cur_price: float | None
+    avg_price: float | None
+    macd: MACDResult | None
+    kdj: KDJResult | None
+    rsi: RSIResult | None
 
 
 class RealtimeIndicators:
@@ -74,11 +120,11 @@ class RealtimeIndicators:
         )
         # 国内软件MACD柱状图为2倍差值
         macd_bar = 2 * hist
-        return {
-            'dif': dif[-1] if len(dif) > 0 else None,
-            'dea': dea[-1] if len(dea) > 0 else None,
-            'macd': macd_bar[-1] if len(macd_bar) > 0 else None
-        }
+        return MACDResult(
+            dif=dif[-1] if len(dif) > 0 else None,
+            dea=dea[-1] if len(dea) > 0 else None,
+            macd=macd_bar[-1] if len(macd_bar) > 0 else None,
+        )
 
     def calculate_kdj(self, high_prices, low_prices, close_prices,
                       fastk_period=9, slowk_period=3, slowd_period=3):
@@ -108,18 +154,23 @@ class RealtimeIndicators:
                 d[i] = 2.0/3.0 * d[i-1] + 1.0/3.0 * k[i]
         j = 3 * k - 2 * d
 
-        return {
-            'k': k[-1] if len(k) > 0 else None,
-            'd': d[-1] if len(d) > 0 else None,
-            'j': j[-1] if len(j) > 0 else None
-        }
+        return KDJResult(
+            k=k[-1] if len(k) > 0 else None,
+            d=d[-1] if len(d) > 0 else None,
+            j=j[-1] if len(j) > 0 else None,
+        )
 
-    def calculate_rsi(self, close_prices, timeperiod=14):
-        """计算RSI指标"""
-        rsi = talib.RSI(close_prices, timeperiod=timeperiod)
-        return {
-            'rsi': rsi[-1] if len(rsi) > 0 else None
-        }
+    def calculate_rsi(self, close_prices, periods=(6, 12, 24)):
+        """计算RSI指标（国内标准：同时显示RSI6、RSI12、RSI24）"""
+        values = {}
+        for period in periods:
+            rsi = talib.RSI(close_prices, timeperiod=period)
+            values[period] = rsi[-1] if len(rsi) > 0 else None
+        return RSIResult(
+            rsi1=values.get(6),
+            rsi2=values.get(12),
+            rsi3=values.get(24),
+        )
 
     def get_realtime_info(self, stock_code):
         """获取实时行情信息（含技术指标）"""
@@ -152,76 +203,78 @@ class RealtimeIndicators:
             change_val = quote['last_price'] - quote['prev_close_price']
             change_rate = change_val / quote['prev_close_price'] * 100
 
-        return {
-            'stock_code': stock_code,
-            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'current_price': quote['last_price'] if quote is not None else None,
-            'open_price': quote['open_price'] if quote is not None else None,
-            'high_price': quote['high_price'] if quote is not None else None,
-            'low_price': quote['low_price'] if quote is not None else None,
-            'prev_close_price': quote['prev_close_price'] if quote is not None else None,
-            'volume': quote['volume'] if quote is not None else None,
-            'turnover': quote['turnover'] if quote is not None else None,
-            'change_val': change_val,
-            'change_rate': change_rate,
-            'cur_price': latest_tick['cur_price'] if latest_tick is not None else None,
-            'avg_price': latest_tick['avg_price'] if latest_tick is not None else None,
-            'macd': macd,
-            'kdj': kdj,
-            'rsi': rsi,
-        }
+        return RealtimeInfo(
+            stock_code=stock_code,
+            timestamp=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            current_price=quote['last_price'] if quote is not None else None,
+            open_price=quote['open_price'] if quote is not None else None,
+            high_price=quote['high_price'] if quote is not None else None,
+            low_price=quote['low_price'] if quote is not None else None,
+            prev_close_price=quote['prev_close_price'] if quote is not None else None,
+            volume=quote['volume'] if quote is not None else None,
+            turnover=quote['turnover'] if quote is not None else None,
+            change_val=change_val,
+            change_rate=change_rate,
+            cur_price=latest_tick['cur_price'] if latest_tick is not None else None,
+            avg_price=latest_tick['avg_price'] if latest_tick is not None else None,
+            macd=macd,
+            kdj=kdj,
+            rsi=rsi,
+        )
 
-    def print_realtime_info(self, info):
+    def print_realtime_info(self, info: RealtimeInfo):
         """打印实时行情信息"""
         if info is None:
             print('无法获取行情数据')
             return
 
         print(f"\n{'='*60}")
-        print(f"股票代码: {info['stock_code']}")
-        print(f"时间: {info['timestamp']}")
+        print(f"股票代码: {info.stock_code}")
+        print(f"时间: {info.timestamp}")
         print(f"{'-'*60}")
 
-        current = info['current_price']
-        prev_close = info['prev_close_price']
+        current = info.current_price
+        prev_close = info.prev_close_price
         if current is not None and prev_close and prev_close > 0:
-            print(f"最新价: {current:.3f}  涨跌: {info['change_val']:.3f}  涨幅: {info['change_rate']:.2f}%")
+            print(f"最新价: {current:.3f}  涨跌: {info.change_val:.3f}  涨幅: {info.change_rate:.2f}%")
         else:
             print(f"最新价: N/A")
 
-        print(f"开盘: {info['open_price']:.3f}" if info['open_price'] else "开盘: N/A", end='  ')
-        print(f"最高: {info['high_price']:.3f}" if info['high_price'] else "最高: N/A", end='  ')
-        print(f"最低: {info['low_price']:.3f}" if info['low_price'] else "最低: N/A")
-        print(f"昨收: {info['prev_close_price']:.3f}" if info['prev_close_price'] else "昨收: N/A")
+        print(f"开盘: {info.open_price:.3f}" if info.open_price else "开盘: N/A", end='  ')
+        print(f"最高: {info.high_price:.3f}" if info.high_price else "最高: N/A", end='  ')
+        print(f"最低: {info.low_price:.3f}" if info.low_price else "最低: N/A")
+        print(f"昨收: {info.prev_close_price:.3f}" if info.prev_close_price else "昨收: N/A")
 
         print(f"{'-'*60}")
-        print(f"成交量: {info['volume']}" if info['volume'] is not None else "成交量: N/A", end='  ')
-        print(f"成交额: {info['turnover']}" if info['turnover'] is not None else "成交额: N/A")
+        print(f"成交量: {info.volume}" if info.volume is not None else "成交量: N/A", end='  ')
+        print(f"成交额: {info.turnover}" if info.turnover is not None else "成交额: N/A")
 
-        if info['cur_price'] is not None:
-            avg_str = f"  均价: {info['avg_price']:.3f}" if info['avg_price'] else ""
-            print(f"分时当前价: {info['cur_price']:.3f}{avg_str}")
+        if info.cur_price is not None:
+            avg_str = f"  均价: {info.avg_price:.3f}" if info.avg_price else ""
+            print(f"分时当前价: {info.cur_price:.3f}{avg_str}")
 
         # 技术指标
-        if info['macd'] is not None:
-            macd = info['macd']
+        if info.macd is not None:
+            macd = info.macd
             print(f"{'-'*60}")
-            print(f"MACD指标:")
-            print(f"  DIF: {macd['dif']:.4f}" if macd['dif'] is not None else "  DIF: N/A")
-            print(f"  DEA: {macd['dea']:.4f}" if macd['dea'] is not None else "  DEA: N/A")
-            print(f"  MACD: {macd['macd']:.4f}" if macd['macd'] is not None else "  MACD: N/A")
+            dif_str = f"{macd.dif:.4f}" if macd.dif is not None else "N/A"
+            dea_str = f"{macd.dea:.4f}" if macd.dea is not None else "N/A"
+            macd_str = f"{macd.macd:.4f}" if macd.macd is not None else "N/A"
+            print(f"MACD  DIF: {dif_str}  DEA: {dea_str}  MACD: {macd_str}")
 
-        if info['kdj'] is not None:
-            kdj = info['kdj']
-            print(f"\nKDJ指标:")
-            print(f"  K: {kdj['k']:.2f}" if kdj['k'] is not None else "  K: N/A")
-            print(f"  D: {kdj['d']:.2f}" if kdj['d'] is not None else "  D: N/A")
-            print(f"  J: {kdj['j']:.2f}" if kdj['j'] is not None else "  J: N/A")
+        if info.kdj is not None:
+            kdj = info.kdj
+            k_str = f"{kdj.k:.2f}" if kdj.k is not None else "N/A"
+            d_str = f"{kdj.d:.2f}" if kdj.d is not None else "N/A"
+            j_str = f"{kdj.j:.2f}" if kdj.j is not None else "N/A"
+            print(f"KDJ   K: {k_str}  D: {d_str}  J: {j_str}")
 
-        if info['rsi'] is not None:
-            rsi = info['rsi']
-            print(f"\nRSI指标:")
-            print(f"  RSI(14): {rsi['rsi']:.2f}" if rsi['rsi'] is not None else "  RSI(14): N/A")
+        if info.rsi is not None:
+            rsi = info.rsi
+            r1_str = f"{rsi.rsi1:.2f}" if rsi.rsi1 is not None else "N/A"
+            r2_str = f"{rsi.rsi2:.2f}" if rsi.rsi2 is not None else "N/A"
+            r3_str = f"{rsi.rsi3:.2f}" if rsi.rsi3 is not None else "N/A"
+            print(f"RSI   RSI1: {r1_str}  RSI2: {r2_str}  RSI3: {r3_str}")
 
         print(f"{'='*60}\n")
 

@@ -25,13 +25,9 @@ def main():
 
             # 单次查询示例
             print("=" * 60)
-            print("单次查询模式")
-            print("=" * 60)
-            indicators = monitor.get_realtime_info(stock_code)
-            monitor.print_realtime_info(indicators)
 
             # 询问是否开启实时监控
-            print("\n是否开启实时监控? (输入 y 继续, 其他键退出)")
+            print("\n是否开启实时监控? (输入 y 继续, 其他键单次查询)")
             choice = 'n' #input().strip().lower()
 
             # 清屏
@@ -40,7 +36,12 @@ def main():
             if choice == 'y':
                 monitor.monitor_realtime(stock_code, interval=interval)
             else:
-                print("程序退出")
+                print("单次查询模式")
+                print("=" * 60)
+                indicators = monitor.get_realtime_info(stock_code)
+                monitor.print_realtime_info(indicators)
+
+            print("程序退出")
 
         except Exception as e:
             print(e)
