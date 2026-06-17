@@ -1,25 +1,29 @@
 """股票实时行情监控脚本"""
+import logging
+
 from src.quote_context import QuoteContext
 from src.realtime_indicators import RealtimeIndicators, RealtimeInfo
 from src.subscribe_stock import SubscriptionManager
 from src.util import clear_screen
 from src.notification import notify
 
+logger = logging.getLogger(__name__)
 
-def main(stock_code: str, sub_types: list = None, interval: int = 3):
+
+def monitor_stock(stock_code: str, sub_types: list = None, interval: int = 5):
     """主函数
 
     Args:
         stock_code: 股票代码，如 'SH.515050'
         sub_types: 订阅类型列表，默认为 ['QUOTE', 'RT_DATA', 'KL_1MIN']
-        interval: 刷新间隔(秒)，默认为 3 秒
+        interval: 刷新间隔(秒)，默认为 5 秒
     """
     # 配置参数
     if sub_types is None:
         sub_types = ['QUOTE', 'RT_DATA', 'KL_1MIN']
 
-    print(f"股票代码: {stock_code}")
-    print(f"刷新间隔: {interval}秒\n")
+    logger.info("股票代码: %s", stock_code)
+    logger.info("刷新间隔: %s秒", interval)
 
     with QuoteContext() as quote_ctx:
         try:
@@ -29,10 +33,10 @@ def main(stock_code: str, sub_types: list = None, interval: int = 3):
             monitor = RealtimeIndicators(quote_ctx)
 
             # 单次查询示例
-            print("=" * 60)
+            logger.info("=" * 60)
 
             # 询问是否开启实时监控
-            print("\n是否开启实时监控? (输入 y 继续, 其他键单次查询)")
+            logger.info("是否开启实时监控? (输入 y 继续, 其他键单次查询)")
             choice = 'y' #input().strip().lower()
 
             # 清屏
@@ -41,8 +45,8 @@ def main(stock_code: str, sub_types: list = None, interval: int = 3):
             if choice == 'y':
                 monitor.monitor_realtime(stock_code, interval=interval)
             else:
-                print("单次查询模式")
-                print("=" * 60)
+                logger.info("单次查询模式")
+                logger.info("=" * 60)
                 indicators = monitor.get_realtime_info(stock_code)
                 monitor.print_realtime_info(indicators)
                 # 通过函数判断是否符合需要指标条件
@@ -50,11 +54,10 @@ def main(stock_code: str, sub_types: list = None, interval: int = 3):
                 # 根据返回结果发送通知
                 send_notification(stock_code, result)
 
-            print("程序退出")
+            logger.info("程序退出")
 
         except Exception as e:
-            print(e)
-            print(f"\n错误: {e}")
+            logger.error("错误: %s", e)
 
 def send_notification(stock_code: str, result: dict):
     """根据交易信号发送系统通知
@@ -83,13 +86,13 @@ def send_notification(stock_code: str, result: dict):
     # 将信号列表组合成消息
     message = "\n".join(signals) if signals else "技术指标达到阈值"
 
-    # 发送通知，5分钟内相同信号不重复发送
-    sent = notify(title=title, message=message, key=key, cooldown=5.0)
+    # 发送通知，1分钟内相同信号不重复发送
+    sent = notify(title=title, message=message, key=key, cooldown=1.0)
 
     if sent:
-        print(f"✓ 已发送系统通知: {title}")
+        logger.info("已发送系统通知: %s", title)
     else:
-        print(f"○ 通知在冷却期内，已跳过")
+        logger.info("通知在冷却期内，已跳过")
 
 
 def callback(info: RealtimeInfo):
@@ -131,20 +134,14 @@ def callback(info: RealtimeInfo):
     # 打印信号
     if signals:
         signal_type = "买入" if flag == 1 else "卖出" if flag == 2 else "无"
-        print(f"\n{'='*60}")
-        print(f"交易信号: {signal_type}")
+        logger.info("\n%s", "=" * 60)
+        logger.info("交易信号: %s", signal_type)
         for signal in signals:
-            print(f"  - {signal}")
-        print(f"{'='*60}\n")
+            logger.info("  - %s", signal)
+        logger.info("%s", "=" * 60)
 
     return {
         "flag": flag,
         "signals": signals,
     }
 
-    
-
-if __name__ == '__main__':
-    # 默认监控的股票代码
-    default_stock_code = 'SH.515050'
-    main(default_stock_code)

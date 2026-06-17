@@ -1,11 +1,11 @@
 """实时获取股票行情并计算技术指标"""
 import time
+import logging
 from dataclasses import dataclass
 from datetime import datetime
 from futu import *
 import talib
 import numpy as np
-
 
 @dataclass
 class MACDResult:
@@ -64,6 +64,17 @@ class RealtimeIndicators:
         """
         self.quote_ctx = quote_ctx
 
+    def _get_logger(self, stock_code):
+        """获取带股票代码的logger
+
+        Args:
+            stock_code: 股票代码
+
+        Returns:
+            logging.Logger: 带股票代码的logger实例
+        """
+        return logging.getLogger(f'{__name__}.{stock_code}')
+
     def get_rt_data(self, stock_code):
         """获取实时分时数据（需先订阅 RT_DATA）
 
@@ -77,7 +88,7 @@ class RealtimeIndicators:
         if ret == RET_OK:
             return data
         else:
-            print(f'获取分时数据失败: {data}')
+            self._get_logger(stock_code).error(f'获取分时数据失败: {data}')
             return None
 
     def get_cur_kline(self, stock_code, ktype=KLType.K_1M, num=100):
@@ -99,7 +110,7 @@ class RealtimeIndicators:
         if ret == RET_OK:
             return data
         else:
-            print(f'获取实时K线数据失败: {data}')
+            self._get_logger(stock_code).error(f'获取实时K线数据失败: {data}')
             return None
 
     def get_realtime_quote(self, stock_code):
@@ -108,7 +119,7 @@ class RealtimeIndicators:
         if ret == RET_OK:
             return data.iloc[0]
         else:
-            print(f'获取实时报价失败: {data}')
+            self._get_logger(stock_code).error(f'获取实时报价失败: {data}')
             return None
 
     def calculate_macd(self, close_prices, fastperiod=12, slowperiod=26, signalperiod=9, **kwargs):
@@ -232,57 +243,61 @@ class RealtimeIndicators:
     def print_realtime_info(self, info: RealtimeInfo):
         """打印实时行情信息"""
         if info is None:
-            print('无法获取行情数据')
+            logging.getLogger(__name__).warning('无法获取行情数据')
             return
 
-        print(f"\n{'='*60}")
-        print(f"代码: {info.stock_code} 名称: {info.stock_name}  时间: {info.timestamp}")
-        print(f"{'-'*60}")
+        logger = self._get_logger(info.stock_code)
+        logger.info(f"\n")
+        logger.info(f"{'='*60}")
+        logger.info(f"代码: {info.stock_code} 名称: {info.stock_name}  时间: {info.timestamp}")
+        logger.info(f"{'-'*60}")
 
         current = info.current_price
         prev_close = info.prev_close_price
         if current is not None and prev_close and prev_close > 0:
-            print(f"最新价: {current:.3f}  涨跌: {info.change_val:.3f}  涨幅: {info.change_rate:.2f}%")
+            logger.info(f"最新价: {current:.3f}  涨跌: {info.change_val:.3f}  涨幅: {info.change_rate:.2f}%")
         else:
-            print(f"最新价: N/A")
+            logger.info(f"最新价: N/A")
 
-        print(f"开盘: {info.open_price:.3f}" if info.open_price else "开盘: N/A", end='  ')
-        print(f"最高: {info.high_price:.3f}" if info.high_price else "最高: N/A", end='  ')
-        print(f"最低: {info.low_price:.3f}" if info.low_price else "最低: N/A", end='  ')
-        print(f"昨收: {info.prev_close_price:.3f}" if info.prev_close_price else "昨收: N/A")
+        open_str = f"开盘: {info.open_price:.3f}" if info.open_price else "开盘: N/A"
+        high_str = f"最高: {info.high_price:.3f}" if info.high_price else "最高: N/A"
+        low_str = f"最低: {info.low_price:.3f}" if info.low_price else "最低: N/A"
+        prev_str = f"昨收: {info.prev_close_price:.3f}" if info.prev_close_price else "昨收: N/A"
+        logger.info(f"{open_str}  {high_str}  {low_str}  {prev_str}")
 
-        print(f"{'-'*60}")
-        print(f"成交量: {info.volume}" if info.volume is not None else "成交量: N/A", end='  ')
-        print(f"成交额: {info.turnover}" if info.turnover is not None else "成交额: N/A")
+        logger.info(f"{'-'*60}")
+        volume_str = f"成交量: {info.volume}" if info.volume is not None else "成交量: N/A"
+        turnover_str = f"成交额: {info.turnover}" if info.turnover is not None else "成交额: N/A"
+        logger.info(f"{volume_str}  {turnover_str}")
 
         if info.cur_price is not None:
             avg_str = f"  均价: {info.avg_price:.3f}" if info.avg_price else ""
-            print(f"分时当前价: {info.cur_price:.3f}{avg_str}")
+            logger.info(f"分时当前价: {info.cur_price:.3f}{avg_str}")
 
         # 技术指标
         if info.macd is not None:
             macd = info.macd
-            print(f"{'-'*60}")
+            logger.info(f"{'-'*60}")
             dif_str = f"{macd.dif:.4f}" if macd.dif is not None else "N/A"
             dea_str = f"{macd.dea:.4f}" if macd.dea is not None else "N/A"
             macd_str = f"{macd.macd:.4f}" if macd.macd is not None else "N/A"
-            print(f"MACD  DIF: {dif_str}  DEA: {dea_str}  MACD: {macd_str}")
+            logger.info(f"MACD  DIF: {dif_str}  DEA: {dea_str}  MACD: {macd_str}")
 
         if info.kdj is not None:
             kdj = info.kdj
             k_str = f"{kdj.k:.2f}" if kdj.k is not None else "N/A"
             d_str = f"{kdj.d:.2f}" if kdj.d is not None else "N/A"
             j_str = f"{kdj.j:.2f}" if kdj.j is not None else "N/A"
-            print(f"KDJ   K: {k_str}  D: {d_str}  J: {j_str}")
+            logger.info(f"KDJ   K: {k_str}  D: {d_str}  J: {j_str}")
 
         if info.rsi is not None:
             rsi = info.rsi
             r1_str = f"{rsi.rsi1:.2f}" if rsi.rsi1 is not None else "N/A"
             r2_str = f"{rsi.rsi2:.2f}" if rsi.rsi2 is not None else "N/A"
             r3_str = f"{rsi.rsi3:.2f}" if rsi.rsi3 is not None else "N/A"
-            print(f"RSI   RSI1: {r1_str}  RSI2: {r2_str}  RSI3: {r3_str}")
+            logger.info(f"RSI   RSI1: {r1_str}  RSI2: {r2_str}  RSI3: {r3_str}")
 
-        print(f"{'='*60}\n")
+        logger.info(f"{'='*60}\n")
 
     def monitor_realtime(self, stock_code, interval=3):
         """实时监控股票行情
@@ -291,9 +306,9 @@ class RealtimeIndicators:
             stock_code: 股票代码,如 'HK.00700' (腾讯)
             interval: 刷新间隔(秒)
         """
-        print(f"开始监控 {stock_code} 的实时行情...")
-        print(f"刷新间隔: {interval}秒")
-        print("按 Ctrl+C 停止监控\n")
+        logger = self._get_logger(stock_code)
+        logger.info(f"开始监控实时行情...")
+        logger.info(f"刷新间隔: {interval}秒")
 
         try:
             while True:
@@ -301,7 +316,7 @@ class RealtimeIndicators:
                 self.print_realtime_info(info)
                 time.sleep(interval)
         except KeyboardInterrupt:
-            print("\n监控已停止")
+            logger.info(f"\n监控已停止")
 
 
 def main():

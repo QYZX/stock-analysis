@@ -1,9 +1,12 @@
 """Windows 10 系统通知工具，支持 key 去重与自动过期。"""
 
+import logging
 import threading
 import time
 
 from winotify import Notification
+
+logger = logging.getLogger(__name__)
 
 # key → 过期时间戳（线程安全）
 _expire_map: dict[str, float] = {}
@@ -52,5 +55,5 @@ def reset_all() -> None:
 
 
 if __name__ == "__main__":
-    print("测试通知")
+    logger.info("测试通知")
     notify("测试通知", "这是一条测试消息", key="test", cooldown=0.1)

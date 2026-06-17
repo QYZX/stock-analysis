@@ -3,7 +3,11 @@
 提供简单的订阅/取消订阅函数，可直接在代码中调用
 """
 
+import logging
+
 from futu import *
+
+logger = logging.getLogger(__name__)
 
 
 class SubscriptionManager:
@@ -56,9 +60,9 @@ class SubscriptionManager:
         )
 
         if ret_code == RET_OK:
-            print(f"✓ 订阅成功: {stock_codes} - {sub_types}")
+            logger.info("订阅成功: %s - %s", stock_codes, sub_types)
         else:
-            print(f"✗ 订阅失败: {err_msg}")
+            logger.error("订阅失败: %s", err_msg)
 
         return ret_code, err_msg
 
@@ -91,9 +95,9 @@ class SubscriptionManager:
         )
 
         if ret_code == RET_OK:
-            print(f"✓ 取消订阅成功: {stock_codes} - {sub_types}")
+            logger.info("取消订阅成功: %s - %s", stock_codes, sub_types)
         else:
-            print(f"✗ 取消订阅失败: {err_msg}")
+            logger.error("取消订阅失败: %s", err_msg)
 
         return ret_code, err_msg
 
@@ -105,7 +109,7 @@ class SubscriptionManager:
         """
         ret_code, data = self.quote_ctx.query_subscription()
         if ret_code != RET_OK:
-            print(f"查询订阅失败: {data}")
+            logger.error("查询订阅失败: %s", data)
             return False
 
         # 检查是否为空
@@ -116,7 +120,7 @@ class SubscriptionManager:
             is_empty = data.empty
 
         if is_empty:
-            print("当前没有任何订阅")
+            logger.info("当前没有任何订阅")
             return True
 
         # 按订阅类型分组取消
@@ -125,10 +129,10 @@ class SubscriptionManager:
             for _, row in data.iterrows():
                 self.quote_ctx.unsubscribe([row['code']], [row['sub_type']])
         else:
-            print("无法处理的数据格式，请手动取消订阅")
+            logger.warning("无法处理的数据格式，请手动取消订阅")
             return False
 
-        print("✓ 所有订阅已取消")
+        logger.info("所有订阅已取消")
         return True
 
     def list_subscriptions(self):
@@ -139,7 +143,7 @@ class SubscriptionManager:
         """
         ret_code, data = self.quote_ctx.query_subscription()
         if ret_code != RET_OK:
-            print(f"查询订阅失败: {data}")
+            logger.error("查询订阅失败: %s", data)
             return None
 
         # 检查是否为空
@@ -150,23 +154,24 @@ class SubscriptionManager:
             is_empty = data.empty
 
         if is_empty:
-            print("当前没有任何订阅")
+            logger.info("当前没有任何订阅")
             return data if not isinstance(data, dict) else None
 
-        print("\n当前订阅列表:")
-        print("=" * 70)
+        logger.info("\n当前订阅列表:")
+        logger.info("=" * 70)
 
         # 判断数据类型并遍历
         if hasattr(data, 'iterrows'):
             # DataFrame
             for _, row in data.iterrows():
-                print(f"{row['code']:<15} {row['sub_type']:<20} "
-                      f"已用: {row['used_quota']:<5} 剩余: {row['remain_quota']:<5}")
+                logger.info("%-15s %-20s 已用: %-5s 剩余: %-5s",
+                            row['code'], row['sub_type'],
+                            row['used_quota'], row['remain_quota'])
         else:
             # 其他格式，直接打印
-            print(data)
+            logger.info("%s", data)
 
-        print("=" * 70)
+        logger.info("=" * 70)
 
         return data
 

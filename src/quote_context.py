@@ -4,7 +4,11 @@
 避免各模块各自创建连接导致资源泄漏。
 """
 
+import logging
+
 from futu import OpenQuoteContext
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_HOST = '127.0.0.1'
 DEFAULT_PORT = 11111
@@ -38,5 +42,5 @@ def create_quote_ctx(host=DEFAULT_HOST, port=DEFAULT_PORT):
     调用方负责在程序结束时调用 quote_ctx.close() 关闭连接，
     或使用 QuoteContext 上下文管理器自动关闭。
     """
-    print(f"正在连接富途OpenD...")
+    logger.info("正在连接富途OpenD...")
     return OpenQuoteContext(host=host, port=port)

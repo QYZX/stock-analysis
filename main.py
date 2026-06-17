@@ -1,8 +1,13 @@
 """主程序入口：批量监控多个股票"""
+import logging
+
 import yaml
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from src.monitor_stock import main as monitor_stock
+from src.monitor_stock import monitor_stock
+from logging_config import setup_logging
+
+logger = logging.getLogger(__name__)
 
 
 def load_config(config_path: str = "config.yaml") -> dict:
@@ -44,17 +49,17 @@ def monitor_single_stock(stock_item, sub_types: list, interval: int, idx: int, t
     if not stock_code:
         return (None, False, "股票代码为空")
 
-    print(f"\n[{idx}/{total}] 正在查询: {stock_code}")
-    print("-" * 60)
+    logger.info("[%d/%d] 正在查询: %s", idx, total, stock_code)
+    logger.info("-" * 60)
 
     try:
         # 调用 monitor_stock 的 main 函数进行单次查询
         monitor_stock(stock_code, sub_types=sub_types, interval=interval)
-        print(f"✓ [{idx}/{total}] {stock_code} 查询完成")
+        logger.info("[%d/%d] %s 查询完成", idx, total, stock_code)
         return (stock_code, True, None)
     except Exception as e:
         error_msg = f"{stock_code} 查询失败: {e}"
-        print(f"✗ [{idx}/{total}] {error_msg}")
+        logger.error("[%d/%d] %s", idx, total, error_msg)
         return (stock_code, False, str(e))
 
 
@@ -64,28 +69,27 @@ def main():
     try:
         config = load_config()
     except FileNotFoundError as e:
-        print(f"错误: {e}")
-        print("请创建 config.yaml 文件")
+        logger.error("%s", e)
+        logger.error("请创建 config.yaml 文件")
         return
     except Exception as e:
-        print(f"配置文件格式错误: {e}")
+        logger.error("配置文件格式错误: %s", e)
         return
 
     # 从配置中获取参数
     stock_codes_config = config.get('stock_codes', [])
     sub_types = config.get('sub_types', ['QUOTE', 'RT_DATA', 'KL_1MIN'])
-    interval = config.get('interval', 3)
+    interval = config.get('interval', 5)
     max_workers = config.get('max_workers', 5)  # 最大线程数，默认5个
 
     # 验证配置
     if not stock_codes_config:
-        print("错误: 配置文件中没有股票代码")
+        logger.error("配置文件中没有股票代码")
         return
 
-    print("=" * 60)
-    print(f"开始监控 {len(stock_codes_config)} 只股票（最大并发数: {max_workers}）")
-    print("=" * 60)
-    print()
+    logger.info("=" * 60)
+    logger.info("开始监控 %d 只股票（最大并发数: %d）", len(stock_codes_config), max_workers)
+    logger.info("=" * 60)
 
     # 使用线程池并发执行
     total = len(stock_codes_config)
@@ -115,19 +119,20 @@ def main():
                 elif stock_code:
                     failed_stocks.append((stock_code, error_msg))
             except Exception as e:
-                print(f"✗ 线程执行异常: {e}")
+                logger.error("线程执行异常: %s", e)
 
-    print()
-    print("=" * 60)
-    print(f"所有股票查询完成 - 成功: {success_count}/{total}, 失败: {len(failed_stocks)}")
+    logger.info("=" * 60)
+    logger.info("所有股票查询完成 - 成功: %d/%d, 失败: %d", success_count, total, len(failed_stocks))
 
     if failed_stocks:
-        print("\n失败的股票:")
+        logger.warning("失败的股票:")
         for stock_code, error_msg in failed_stocks:
-            print(f"  - {stock_code}: {error_msg}")
+            logger.warning("  - %s: %s", stock_code, error_msg)
 
-    print("=" * 60)
+    logger.info("=" * 60)
 
 
 if __name__ == "__main__":
+    setup_logging()
     main()
+    
