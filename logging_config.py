@@ -11,6 +11,10 @@ LOGGING_CONFIG = {
             'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
             'datefmt': '%Y-%m-%d %H:%M:%S'
         },
+        'signal': {                     # 信号专用格式
+            'format': '%(asctime)s - [%(levelname)s] - %(message)s',
+            'datefmt': '%Y-%m-%d %H:%M:%S'
+        },
     },
     'handlers': {                       # 定义处理器（输出目的地）
         'console': {                    # 控制台处理器
@@ -23,9 +27,24 @@ LOGGING_CONFIG = {
             'class': 'logging.FileHandler',
             'level': 'INFO',
             'formatter': 'standard',
-            'filename': 'log.log',
+            'filename': 'log/log.log',
             'mode': 'a',
             'encoding': 'utf-8'         # 使用 UTF-8 编码
+        },
+        'signal_file': {                # 交易信号专用文件处理器
+            'class': 'logging.FileHandler',
+            'level': 'INFO',
+            'formatter': 'signal',
+            'filename': 'log/signals.log',
+            'mode': 'a',
+            'encoding': 'utf-8'
+        }
+    },
+    'loggers': {
+        'signal': {                     # 交易信号专用 logger
+            'level': 'INFO',
+            'handlers': ['signal_file', 'console'],
+            'propagate': False
         }
     },
     'root': {                           # 配置根记录器

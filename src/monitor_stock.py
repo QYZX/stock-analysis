@@ -8,6 +8,7 @@ from src.util import clear_screen
 from src.notification import notify
 
 logger = logging.getLogger(__name__)
+signal_logger = logging.getLogger('signal')  # 交易信号专用 logger
 
 
 def monitor_stock(stock_code: str, sub_types: list = None, interval: int = 5):
@@ -91,6 +92,8 @@ def send_notification(stock_code: str, result: dict):
 
     if sent:
         logger.info("已发送系统通知: %s", title)
+        # 记录通知发送到信号日志
+        signal_logger.info("已发送系统通知: %s - %s", title, message.replace('\n', ' | '))
     else:
         logger.info("通知在冷却期内，已跳过")
 
@@ -139,6 +142,13 @@ def callback(info: RealtimeInfo):
         for signal in signals:
             logger.info("  - %s", signal)
         logger.info("%s", "=" * 60)
+
+        # 将信号写入专用日志文件
+        signal_logger.info("=" * 60)
+        signal_logger.info("交易信号: %s", signal_type)
+        for signal in signals:
+            signal_logger.info("  %s", signal)
+        signal_logger.info("=" * 60)
 
     return {
         "flag": flag,
