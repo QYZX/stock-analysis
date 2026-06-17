@@ -38,4 +38,5 @@ def create_quote_ctx(host=DEFAULT_HOST, port=DEFAULT_PORT):
     调用方负责在程序结束时调用 quote_ctx.close() 关闭连接，
     或使用 QuoteContext 上下文管理器自动关闭。
     """
+    print(f"正在连接富途OpenD...")
     return OpenQuoteContext(host=host, port=port)

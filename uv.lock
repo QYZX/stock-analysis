@@ -43,21 +43,6 @@ dependencies = [
 sdist = { url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/packages/45/ca/34ea135e1bfc9ab7249bda4c77c89c93e31f65f53f5f48680ae5b95a2ed2/futu_api-10.7.6708.tar.gz", hash = "sha256:03118921c6662e5f14913d6071e9e72d7eee89674569bef4f86caadd48813867", size = 6299789, upload-time = "2026-06-04T12:28:15.599Z" }
 
 [[package]]
-name = "futunn"
-version = "0.1.0"
-source = { virtual = "." }
-dependencies = [
-    { name = "futu-api" },
-    { name = "ta-lib" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "futu-api", specifier = ">=10.7.6708" },
-    { name = "ta-lib", specifier = ">=0.6.8" },
-]
-
-[[package]]
 name = "numpy"
 version = "2.4.6"
 source = { registry = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple/" }
@@ -220,6 +205,23 @@ wheels = [
 ]
 
 [[package]]
+name = "stock-analysis"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "futu-api" },
+    { name = "ta-lib" },
+    { name = "winotify" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "futu-api", specifier = ">=10.7.6708" },
+    { name = "ta-lib", specifier = ">=0.6.8" },
+    { name = "winotify", specifier = ">=1.1.0" },
+]
+
+[[package]]
 name = "ta-lib"
 version = "0.6.8"
 source = { registry = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple/" }
@@ -247,4 +249,13 @@ source = { registry = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple/" }
 sdist = { url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/packages/ba/19/1b9b0e29f30c6d35cb345486df41110984ea67ae69dddbc0e8a100999493/tzdata-2026.2.tar.gz", hash = "sha256:9173fde7d80d9018e02a662e168e5a2d04f87c41ea174b139fbef642eda62d10", size = 198254, upload-time = "2026-04-24T15:22:08.651Z" }
 wheels = [
     { url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/packages/ce/e4/dccd7f47c4b64213ac01ef921a1337ee6e30e8c6466046018326977efd95/tzdata-2026.2-py2.py3-none-any.whl", hash = "sha256:bbe9af844f658da81a5f95019480da3a89415801f6cc966806612cc7169bffe7", size = 349321, upload-time = "2026-04-24T15:22:05.876Z" },
+]
+
+[[package]]
+name = "winotify"
+version = "1.1.0"
+source = { registry = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple/" }
+sdist = { url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/packages/a1/b0/1b304fdd8fd810f1f8e81a2708f8bf72e0987de1a763f0ee81f6d08bcae7/winotify-1.1.0.tar.gz", hash = "sha256:f8a0d6ff00cb2c1b3dcdfe825431f46f6aa5dc8ce84ffc59e8fda8c7e36687fe", size = 10101, upload-time = "2022-02-07T12:34:46.236Z" }
+wheels = [
+    { url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/packages/72/85/6cc4c738080d60b62cad59d0f32386b8277d40e2bf8c06fd1e4101a17238/winotify-1.1.0-py3-none-any.whl", hash = "sha256:13aa9b1196b02ab3e699645b4407371ca73348421f8662565100d70c7cf552d9", size = 15034, upload-time = "2022-02-07T12:34:44.341Z" },
 ]

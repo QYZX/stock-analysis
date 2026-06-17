@@ -110,7 +110,7 @@ class RealtimeIndicators:
             print(f'获取实时报价失败: {data}')
             return None
 
-    def calculate_macd(self, close_prices, fastperiod=12, slowperiod=26, signalperiod=9):
+    def calculate_macd(self, close_prices, fastperiod=12, slowperiod=26, signalperiod=9, **kwargs):
         """计算MACD指标（国内标准：MACD柱 = 2*(DIF-DEA)）"""
         dif, dea, hist = talib.MACD(
             close_prices,
@@ -127,7 +127,7 @@ class RealtimeIndicators:
         )
 
     def calculate_kdj(self, high_prices, low_prices, close_prices,
-                      fastk_period=9, slowk_period=3, slowd_period=3):
+                      fastk_period=9, slowk_period=3, slowd_period=3, **kwargs):
         """计算KDJ指标（国内标准：K/D按2/3、1/3递推平滑）"""
         # 使用STOCHF获取原始RSV
         fastk, _ = talib.STOCHF(
@@ -160,7 +160,7 @@ class RealtimeIndicators:
             j=j[-1] if len(j) > 0 else None,
         )
 
-    def calculate_rsi(self, close_prices, periods=(6, 12, 24)):
+    def calculate_rsi(self, close_prices, periods=(6, 12, 24), **kwargs):
         """计算RSI指标（国内标准：同时显示RSI6、RSI12、RSI24）"""
         values = {}
         for period in periods:
@@ -172,7 +172,7 @@ class RealtimeIndicators:
             rsi3=values.get(24),
         )
 
-    def get_realtime_info(self, stock_code):
+    def get_realtime_info(self, stock_code, **kwargs):
         """获取实时行情信息（含技术指标）"""
         # 获取分时数据
         rt_data = self.get_rt_data(stock_code)
@@ -192,9 +192,9 @@ class RealtimeIndicators:
             close_prices = np.array(kline_data['close'].values, dtype=float)
             high_prices = np.array(kline_data['high'].values, dtype=float)
             low_prices = np.array(kline_data['low'].values, dtype=float)
-            macd = self.calculate_macd(close_prices)
-            kdj = self.calculate_kdj(high_prices, low_prices, close_prices)
-            rsi = self.calculate_rsi(close_prices)
+            macd = self.calculate_macd(close_prices, **kwargs)
+            kdj = self.calculate_kdj(high_prices, low_prices, close_prices, **kwargs)
+            rsi = self.calculate_rsi(close_prices, **kwargs)
 
         # 计算涨跌额和涨跌幅
         change_val = None

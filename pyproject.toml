@@ -7,4 +7,5 @@ requires-python = ">=3.14"
 dependencies = [
     "futu-api>=10.7.6708",
     "ta-lib>=0.6.8",
+    "winotify>=1.1.0",
 ]
