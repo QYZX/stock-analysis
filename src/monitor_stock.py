@@ -6,12 +6,17 @@ from src.util import clear_screen
 from src.notification import notify
 
 
-def main():
-    """主函数"""
+def main(stock_code: str, sub_types: list = None, interval: int = 3):
+    """主函数
+
+    Args:
+        stock_code: 股票代码，如 'SH.515050'
+        sub_types: 订阅类型列表，默认为 ['QUOTE', 'RT_DATA', 'KL_1MIN']
+        interval: 刷新间隔(秒)，默认为 3 秒
+    """
     # 配置参数
-    stock_code = 'SH.515050'  # 可改为你想监控的股票代码
-    sub_types = ['QUOTE', 'RT_DATA', 'KL_1MIN']
-    interval = 3  # 刷新间隔(秒)
+    if sub_types is None:
+        sub_types = ['QUOTE', 'RT_DATA', 'KL_1MIN']
 
     print(f"股票代码: {stock_code}")
     print(f"刷新间隔: {interval}秒\n")
@@ -28,7 +33,7 @@ def main():
 
             # 询问是否开启实时监控
             print("\n是否开启实时监控? (输入 y 继续, 其他键单次查询)")
-            choice = 'n' #input().strip().lower()
+            choice = 'y' #input().strip().lower()
 
             # 清屏
             # clear_screen()
@@ -50,10 +55,6 @@ def main():
         except Exception as e:
             print(e)
             print(f"\n错误: {e}")
-            print("\n请确保:")
-            print("1. 已启动富途OpenD")
-            print("2. OpenD监听在 127.0.0.1:11111")
-            print("3. 已安装依赖: pip install futu-api")
 
 def send_notification(stock_code: str, result: dict):
     """根据交易信号发送系统通知
@@ -144,4 +145,6 @@ def callback(info: RealtimeInfo):
     
 
 if __name__ == '__main__':
-    main()
+    # 默认监控的股票代码
+    default_stock_code = 'SH.515050'
+    main(default_stock_code)

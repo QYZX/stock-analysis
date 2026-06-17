@@ -35,6 +35,7 @@ class RSIResult:
 class RealtimeInfo:
     """实时行情信息"""
     stock_code: str
+    stock_name: str
     timestamp: str
     current_price: float | None
     open_price: float | None
@@ -181,6 +182,9 @@ class RealtimeIndicators:
         # 获取实时报价
         quote = self.get_realtime_quote(stock_code)
 
+        # 股票名称
+        stock_name = ""
+
         # 分时最新数据
         latest_tick = None
         if rt_data is not None and len(rt_data) > 0:
@@ -199,12 +203,15 @@ class RealtimeIndicators:
         # 计算涨跌额和涨跌幅
         change_val = None
         change_rate = None
-        if quote is not None and quote['last_price'] is not None and quote['prev_close_price'] not in (None, 0):
-            change_val = quote['last_price'] - quote['prev_close_price']
-            change_rate = change_val / quote['prev_close_price'] * 100
+        if quote is not None :
+            stock_name = quote['name']
+            if quote['last_price'] is not None and quote['prev_close_price'] not in (None, 0):
+                change_val = quote['last_price'] - quote['prev_close_price']
+                change_rate = change_val / quote['prev_close_price'] * 100
 
         return RealtimeInfo(
             stock_code=stock_code,
+            stock_name=stock_name,
             timestamp=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             current_price=quote['last_price'] if quote is not None else None,
             open_price=quote['open_price'] if quote is not None else None,
@@ -229,8 +236,7 @@ class RealtimeIndicators:
             return
 
         print(f"\n{'='*60}")
-        print(f"股票代码: {info.stock_code}")
-        print(f"时间: {info.timestamp}")
+        print(f"代码: {info.stock_code} 名称: {info.stock_name}  时间: {info.timestamp}")
         print(f"{'-'*60}")
 
         current = info.current_price
@@ -242,7 +248,7 @@ class RealtimeIndicators:
 
         print(f"开盘: {info.open_price:.3f}" if info.open_price else "开盘: N/A", end='  ')
         print(f"最高: {info.high_price:.3f}" if info.high_price else "最高: N/A", end='  ')
-        print(f"最低: {info.low_price:.3f}" if info.low_price else "最低: N/A")
+        print(f"最低: {info.low_price:.3f}" if info.low_price else "最低: N/A", end='  ')
         print(f"昨收: {info.prev_close_price:.3f}" if info.prev_close_price else "昨收: N/A")
 
         print(f"{'-'*60}")
