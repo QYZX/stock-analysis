@@ -299,29 +299,3 @@ class RealtimeIndicators:
 
         logger.info(f"{'='*60}\n")
 
-
-def main():
-    """主函数示例"""
-    from src.subscribe_stock import SubscriptionManager
-    from src.quote_context import create_quote_ctx
-
-    quote_ctx = create_quote_ctx()
-
-    stock_code = 'SH.515050'
-    sub_manager = SubscriptionManager(quote_ctx)
-    sub_manager.subscribe(stock_code, ['QUOTE', 'RT_DATA', 'KL_1MIN'])
-
-    monitor = RealtimeIndicators(quote_ctx)
-
-    info = monitor.get_realtime_info(stock_code)
-    monitor.print_realtime_info(info)
-
-    # 实时监控 (取消注释以启用)
-    # monitor.monitor_realtime(stock_code, interval=3)
-
-    sub_manager.unsubscribe(stock_code, ['QUOTE', 'RT_DATA', 'KL_1MIN'])
-    quote_ctx.close()
-
-
-if __name__ == '__main__':
-    main()

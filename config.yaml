@@ -20,3 +20,6 @@ interval: 5
 
 # 最大并发线程数
 max_workers: 5
+
+# 是否循环监控（true: 循环, false: 单次查询）
+loop: true

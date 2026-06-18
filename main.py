@@ -30,7 +30,7 @@ def load_config(config_path: str = "config.yaml") -> dict:
     return config
 
 
-def monitor_single_stock(stock_item, sub_types: list, interval: int, idx: int, total: int):
+def monitor_single_stock(stock_item, sub_types: list, interval: int, idx: int, total: int, loop: bool = False):
     """监控单个股票的工作函数
 
     Args:
@@ -54,7 +54,7 @@ def monitor_single_stock(stock_item, sub_types: list, interval: int, idx: int, t
 
     try:
         # 调用 monitor_stock 的 main 函数进行单次查询
-        monitor_stock(stock_code, sub_types=sub_types, interval=interval)
+        monitor_stock(stock_code, sub_types=sub_types, interval=interval, loop=loop)
         logger.info("[%d/%d] %s 查询完成", idx, total, stock_code)
         return (stock_code, True, None)
     except Exception as e:
@@ -81,6 +81,7 @@ def main():
     sub_types = config.get('sub_types', ['QUOTE', 'RT_DATA', 'KL_1MIN'])
     interval = config.get('interval', 5)
     max_workers = config.get('max_workers', 5)  # 最大线程数，默认5个
+    loop = config.get('loop', False)  # 是否循环监控，默认 False（单次查询）
 
     # 验证配置
     if not stock_codes_config:
@@ -88,7 +89,8 @@ def main():
         return
 
     logger.info("=" * 60)
-    logger.info("开始监控 %d 只股票（最大并发数: %d）", len(stock_codes_config), max_workers)
+    logger.info("开始监控 %d 只股票（最大并发数: %d, 模式: %s）", len(stock_codes_config), max_workers,
+                    "循环" if loop else "单次")
     logger.info("=" * 60)
 
     # 使用线程池并发执行
@@ -105,7 +107,8 @@ def main():
                 sub_types,
                 interval,
                 idx,
-                total
+                total,
+                loop
             )
             for idx, stock_item in enumerate(stock_codes_config, 1)
         ]
