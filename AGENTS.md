@@ -25,6 +25,7 @@
 | `sub_types` | 订阅类型，默认 `["QUOTE", "RT_DATA", "KL_1MIN"]` |
 | `interval` | 轮询刷新间隔（秒），默认 5 |
 | `max_workers` | 批量监控的并发线程数，默认 5 |
+| `loop` | 是否循环监控（`true` 循环 / `false` 单次查询），默认 `false` |
 
 ## 架构
 
@@ -43,7 +44,8 @@
 | `quote_context.py` | `QuoteContext` 上下文管理器，封装 `OpenQuoteContext`。另提供 `create_quote_ctx()` 用于非上下文管理器场景。单一共享连接模式——各模块共用同一个 `quote_ctx` 实例。 |
 | `subscribe_stock.py` | `SubscriptionManager`——订阅/取消订阅股票数据推送。订阅类型对外用字符串键：`QUOTE`、`RT_DATA`、`ORDER_BOOK`、`TICKER`、`KL_DAY`、`KL_1MIN`、`KL_5MIN`（内部映射到 `SubType.K_DAY`/`K_1M`/`K_5M` 等）。获取实时数据前必须先订阅。 |
 | `realtime_indicators.py` | `RealtimeIndicators`——获取K线/报价/分时数据，通过 `talib` 计算 MACD、KDJ、RSI。`get_realtime_info()` 一次性返回 `RealtimeInfo` 数据类；`monitor_realtime()` 用于持续轮询。另定义 `MACDResult`/`KDJResult`/`RSIResult` 数据类。 |
-| `monitor_stock.py` | 单只股票监控逻辑。`monitor_stock()` 在 `QuoteContext` 内订阅后查询指标；`callback()` 依据 KDJ+RSI 双重条件判断买卖信号；`send_notification()` 根据信号经 `notification.notify` 发系统通知，并通过 `signal_logger` 写入信号日志。 |
+| `monitor_stock.py` | 单只股票监控逻辑。`monitor_stock()` 在 `QuoteContext` 内订阅后查询指标，调用 `signal_callback.on_realtime_info()` 获取信号结果；`send_notification()` 根据信号经 `notification.notify` 发系统通知，并通过 `signal_logger` 写入信号日志。 |
+| `signal_callback.py` | `on_realtime_info(info)` 信号判断函数，依据 KDJ+RSI 双重条件返回 `dict`（`flag`+`signals`）。与 `monitor_stock.py` 解耦，独立可测试。 |
 | `notification.py` | 基于 `winotify` 的 Windows 10 系统通知。`notify(title, message, key, cooldown)` 带 key 去重（默认冷却 1 分钟），线程安全；另提供 `reset_key()`/`reset_all()`。 |
 | `util.py` | `clear_screen()` 辅助函数（兼容 Windows/Unix）。 |
 
@@ -58,8 +60,8 @@ config.yaml
           → RealtimeIndicators.get_realtime_info()
             → get_cur_kline() / get_rt_data() / get_stock_quote()
             → calculate_macd() / calculate_kdj() / calculate_rsi()
-          → callback(info) → 判断买卖信号（KDJ + RSI 双重确认）
-            → send_notification() → notification.notify()（Windows 通知）
+          → signal_callback.on_realtime_info(info) → 返回 {flag, signals}
+            → send_notification(info, result) → notification.notify()（Windows 通知）
             → signal_logger → log/signals.log
 ```
 
@@ -76,12 +78,12 @@ config.yaml
 - **KDJ**：使用 `talib.STOCHF`（`fastd_period=1`）获取原始 RSV，然后手动递推 `K = 2/3 * 前K + 1/3 * RSV`、`D = 2/3 * 前D + 1/3 * K`、`J = 3K - 2D`，初始 K=D=50。切勿直接使用 `talib.STOCH`——其 SMA 平滑方式与国内标准不同。
 - **RSI**：使用 `talib.RSI`（Wilder's 平滑 / EMA alpha=1/N），周期为 `(6, 12, 24)`，对应 `RSIResult.rsi1/rsi2/rsi3`。
 
-## 交易信号判断（`monitor_stock.callback`）
+## 交易信号判断（`src/signal_callback.on_realtime_info`）
 
 需 KDJ 与 RSI **同时**满足条件才触发信号：
 
-- **卖出信号**（`flag=2`）：`K >= 90 且 J >= 100` 且 `RSI1 >= 90`
-- **买入信号**（`flag=1`）：`K <= 10 且 J <= 0` 且 `RSI1 <= 10`
+- **卖出信号**（`flag=2`）：`K >= 85 且 J >= 100` 且 `RSI1 >= 85`
+- **买入信号**（`flag=1`）：`K <= 15 且 J <= 0` 且 `RSI1 <= 15`
 - 任一指标为 `None` 时不触发（`flag=0`）。
 
 触发后由 `send_notification` 发送 Windows 通知（key 为 `{code}_buy`/`{code}_sell`，冷却 1 分钟去重），并写入 `log/signals.log`。
