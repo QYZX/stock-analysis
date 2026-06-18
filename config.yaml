@@ -2,9 +2,12 @@
 
 # 股票代码列表
 stock_codes:
-  - code: "SH.515050"
-  - code: "SH.562950"
-  - code: "SZ.159995"
+  - code: "SH.515050" #通讯ETF
+  - code: "SH.562950" #消费电子ETF
+  - code: "SZ.159995" #芯片ETF
+  - code: "SH.588000" #科创50ETF
+  - code: "SZ.300750" #宁德时代
+  - code: "SH.603629" #利通电子
 
 # 订阅类型
 sub_types:

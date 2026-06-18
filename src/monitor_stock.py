@@ -1,6 +1,6 @@
 """股票实时行情监控脚本"""
 import logging
-
+import time
 from src.quote_context import QuoteContext
 from src.realtime_indicators import RealtimeIndicators, RealtimeInfo
 from src.subscribe_stock import SubscriptionManager
@@ -43,11 +43,7 @@ def monitor_stock(stock_code: str, sub_types: list = None, interval: int = 5):
             # 清屏
             # clear_screen()
 
-            if choice == 'y':
-                monitor.monitor_realtime(stock_code, interval=interval)
-            else:
-                logger.info("单次查询模式")
-                logger.info("=" * 60)
+            def _monitor():
                 indicators = monitor.get_realtime_info(stock_code)
                 monitor.print_realtime_info(indicators)
                 # 通过函数判断是否符合需要指标条件
@@ -55,8 +51,17 @@ def monitor_stock(stock_code: str, sub_types: list = None, interval: int = 5):
                 # 根据返回结果发送通知
                 send_notification(stock_code, result)
 
+            if choice == 'y':
+                while True:
+                    _monitor()
+                    time.sleep(interval)
+            else:
+                _monitor()
+
             logger.info("程序退出")
 
+        except KeyboardInterrupt:
+            logger.info("用户中断，程序退出")
         except Exception as e:
             logger.error("错误: %s", e)
 
@@ -116,18 +121,18 @@ def callback(info: RealtimeInfo):
     if k is None or j is None or rsi1 is None:
         return {"flag": flag, "signals": signals}
 
-    # 判断超买：KDJ (K>=90 且 J>=100) 且 RSI (RSI1>=90)
-    kdj_overbought = k >= 90 and j >= 100
-    rsi_overbought = rsi1 >= 90
+    # 判断超买：KDJ (K>=85 且 J>=100) 且 RSI (RSI1>=85)
+    kdj_overbought = k >= 85 and j >= 100
+    rsi_overbought = rsi1 >= 85
 
     if kdj_overbought and rsi_overbought:
         signals.append(f"KDJ超买: K={k:.2f}, D={d:.2f}, J={j:.2f}")
         signals.append(f"RSI超买: RSI1={rsi1:.2f}")
         flag = 2  # 卖出信号
 
-    # 判断超卖：KDJ (K<=10 且 J<=0) 且 RSI (RSI1<=10)
-    kdj_oversold = k <= 10 and j <= 0
-    rsi_oversold = rsi1 <= 10
+    # 判断超卖：KDJ (K<=15 且 J<=0) 且 RSI (RSI1<=15)
+    kdj_oversold = k <= 15 and j <= 0
+    rsi_oversold = rsi1 <= 15
 
     if kdj_oversold and rsi_oversold:
         signals.append(f"KDJ超卖: K={k:.2f}, D={d:.2f}, J={j:.2f}")

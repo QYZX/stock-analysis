@@ -299,25 +299,6 @@ class RealtimeIndicators:
 
         logger.info(f"{'='*60}\n")
 
-    def monitor_realtime(self, stock_code, interval=3):
-        """实时监控股票行情
-
-        Args:
-            stock_code: 股票代码,如 'HK.00700' (腾讯)
-            interval: 刷新间隔(秒)
-        """
-        logger = self._get_logger(stock_code)
-        logger.info(f"开始监控实时行情...")
-        logger.info(f"刷新间隔: {interval}秒")
-
-        try:
-            while True:
-                info = self.get_realtime_info(stock_code)
-                self.print_realtime_info(info)
-                time.sleep(interval)
-        except KeyboardInterrupt:
-            logger.info(f"\n监控已停止")
-
 
 def main():
     """主函数示例"""
