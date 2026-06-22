@@ -6,7 +6,7 @@ from src.realtime_indicators import RealtimeIndicators, RealtimeInfo
 from src.subscribe_stock import SubscriptionManager
 from src.util import clear_screen
 from src.notification import notify
-from src.signal_callback import on_realtime_info as callback
+from src.signal_callback import on_realtime_info as callback, SignalResult
 
 logger = logging.getLogger(__name__)
 signal_logger = logging.getLogger('signal')  # 交易信号专用 logger
@@ -64,17 +64,14 @@ def monitor_stock(stock_code: str, sub_types: list = None, interval: int = 5, lo
         except Exception as e:
             logger.error("错误: %s", e)
 
-def send_notification(info: RealtimeInfo, result: dict):
+def send_notification(info: RealtimeInfo, result: SignalResult):
     """根据交易信号发送系统通知
 
     Args:
         info: 实时行情信息
-        result: callback 返回的结果字典，包含 flag 和 signals
+        result: 交易信号结果对象
     """
-    flag = result.get("flag", 0)
-    signals = result.get("signals", [])
-
-    if flag == 0:
+    if not result.has_signal:
         # 无信号，不发送通知
         return
 
@@ -83,20 +80,20 @@ def send_notification(info: RealtimeInfo, result: dict):
     stock_label = f"{stock_code} {stock_name}"
 
     # 构造通知内容
-    if flag == 1:
-        title = f"买入信号 - {stock_label}"
-        key = f"{stock_code}_buy"
-    elif flag == 2:
-        title = f"卖出信号 - {stock_label}"
-        key = f"{stock_code}_sell"
+    if result.is_oversold:
+        title = f"超卖信号 - {stock_label} 📉"
+        key = f"{stock_code}_oversold"
+    elif result.is_overbought:
+        title = f"超买信号 - {stock_label} 📈"
+        key = f"{stock_code}_overbought"
     else:
         return
 
     # 将信号列表组合成消息
-    message = "\n".join(signals) if signals else "技术指标达到阈值"
+    message = "\n".join(result.signals) if result.signals else "技术指标达到阈值"
 
     # 发送通知，1分钟内相同信号不重复发送
-    sent = notify(title=title, message=message, key=key, cooldown=1.0)
+    sent = notify(title=title, message=message, key=key, cooldown=30)
 
     if sent:
         logger.info("已发送系统通知: %s", title)
