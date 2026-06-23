@@ -1,11 +1,7 @@
 """交易信号回调函数 - 根据技术指标判断超买超卖信号"""
-import logging
 from dataclasses import dataclass
 
 from src.realtime_indicators import RealtimeInfo
-
-logger = logging.getLogger(__name__)
-signal_logger = logging.getLogger('signal')  # 交易信号专用 logger
 
 
 @dataclass
@@ -75,8 +71,8 @@ def on_realtime_info(info: RealtimeInfo) -> SignalResult:
     rsi_overbought = rsi1 >= 85
 
     if kdj_overbought and rsi_overbought:
-        signals.append(f"KDJ超买: K={k:.2f}, D={d:.2f}, J={j:.2f}")
-        signals.append(f"RSI超买: RSI1={rsi1:.2f}")
+        signals.append(f"KDJ: K={k:.2f}, D={d:.2f}, J={j:.2f}")
+        signals.append(f"RSI: RSI1={rsi1:.2f}")
         flag = 2  # 超买信号
 
     # 判断超卖：KDJ (K<=15 且 J<=0) 且 RSI (RSI1<=15)
@@ -84,26 +80,9 @@ def on_realtime_info(info: RealtimeInfo) -> SignalResult:
     rsi_oversold = rsi1 <= 15
 
     if kdj_oversold and rsi_oversold:
-        signals.append(f"KDJ超卖: K={k:.2f}, D={d:.2f}, J={j:.2f}")
-        signals.append(f"RSI超卖: RSI1={rsi1:.2f}")
+        signals.append(f"KDJ: K={k:.2f}, D={d:.2f}, J={j:.2f}")
+        signals.append(f"RSI: RSI1={rsi1:.2f}")
         flag = 1  # 超卖信号
-
-    # 打印信号
-    if signals:
-        signal_type = result.signal_type_name
-        stock_label = f"{info.stock_code} {info.stock_name}"
-        logger.info("\n%s", "=" * 60)
-        logger.info("[%s] 信号: %s", stock_label, signal_type)
-        for signal in signals:
-            logger.info("  - %s", signal)
-        logger.info("%s", "=" * 60)
-
-        # 将信号写入专用日志文件
-        signal_logger.info("=" * 60)
-        signal_logger.info("[%s] 信号: %s", stock_label, signal_type)
-        for signal in signals:
-            signal_logger.info("  %s", signal)
-        signal_logger.info("=" * 60)
 
     result = SignalResult(flag=flag, signals=signals)
     return result

@@ -2,7 +2,8 @@
 
 # 股票代码列表
 stock_codes:
-  - code: "SH.515050" #通讯ETF
+  - code: "SH.515050" #通信ETF华夏
+  - code: "SH.515880" #通信ETF国泰
   - code: "SH.562950" #消费电子ETF
   - code: "SZ.159995" #芯片ETF
   - code: "SH.588000" #科创50ETF

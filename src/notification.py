@@ -1,5 +1,6 @@
 """跨平台系统通知工具，支持 key 去重与自动过期。"""
 
+import asyncio
 import logging
 import threading
 import time
@@ -14,6 +15,19 @@ _notifier = DesktopNotifier(app_name="Stock Monitor")
 # key → 过期时间戳（线程安全）
 _expire_map: dict[str, float] = {}
 _lock = threading.Lock()
+
+# 持久化事件循环，复用避免 "Event loop is closed" 错误
+_loop: asyncio.AbstractEventLoop | None = None
+_loop_lock = threading.Lock()
+
+
+def _get_loop() -> asyncio.AbstractEventLoop:
+    """获取或创建持久化事件循环（线程安全）。"""
+    global _loop
+    with _loop_lock:
+        if _loop is None or _loop.is_closed():
+            _loop = asyncio.new_event_loop()
+        return _loop
 
 
 def notify(
@@ -41,14 +55,9 @@ def notify(
         _expire_map[key] = now + cooldown
 
     try:
-        # desktop-notifier 是异步的，需要在同步上下文中调用
-        import asyncio
-        loop = asyncio.new_event_loop()
+        loop = _get_loop()
         asyncio.set_event_loop(loop)
-        try:
-            loop.run_until_complete(_notifier.send(title=title, message=message))
-        finally:
-            loop.close()
+        loop.run_until_complete(_notifier.send(title=title, message=message))
         return True
     except Exception as e:
         logger.error(f"发送通知失败: {e}")

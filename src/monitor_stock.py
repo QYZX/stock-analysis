@@ -75,9 +75,30 @@ def send_notification(info: RealtimeInfo, result: SignalResult):
         # 无信号，不发送通知
         return
 
+    signals = result.signals
+    signal_type = result.signal_type_name
     stock_code = info.stock_code
     stock_name = info.stock_name
     stock_label = f"{stock_code} {stock_name}"
+
+    # 涨跌幅
+    change_info = ""
+    if info.change_rate is not None and info.change_val is not None:
+        change_info = f" 涨跌: {info.change_val:+.3f}  涨幅: {info.change_rate:+.2f}%"
+
+    # 打印信号日志
+    logger.info("\n%s", "=" * 60)
+    logger.info("[%s] 信号: %s%s", stock_label, signal_type, change_info)
+    for signal in signals:
+        logger.info("  - %s", signal)
+    logger.info("%s", "=" * 60)
+
+    # 将信号写入专用日志文件
+    signal_logger.info("=" * 60)
+    signal_logger.info("[%s] 信号: %s%s", stock_label, signal_type, change_info)
+    for signal in signals:
+        signal_logger.info("  %s", signal)
+    signal_logger.info("=" * 60)
 
     # 构造通知内容
     if result.is_oversold:
@@ -95,12 +116,6 @@ def send_notification(info: RealtimeInfo, result: SignalResult):
     # 发送通知，1分钟内相同信号不重复发送
     sent = notify(title=title, message=message, key=key, cooldown=30)
 
-    if sent:
-        logger.info("已发送系统通知: %s", title)
-        # 记录通知发送到信号日志
-        signal_logger.info("已发送系统通知: %s - %s", title, message.replace('\n', ' | '))
-    else:
-        logger.info("通知在冷却期内，已跳过")
 
 
 
